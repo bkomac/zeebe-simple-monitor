@@ -5,29 +5,67 @@ networks:
     driver: bridge
 
 services:
-  zeebe:
-    container_name: zeebe_broker
-    image: camunda/zeebe:1.0.0
-    environment:
-      - ZEEBE_LOG_LEVEL=debug
+  zeebe0:
+    container_name: zeebe_broker0
+    image: camunda/zeebe:1.1.0
     ports:
       - "26500:26500"
-      - "9600:9600"
-      - "5701:5701"
+    environment:
+      - ZEEBE_BROKER_CLUSTER_NODEID=0
+      - ZEEBE_BROKER_CLUSTER_PARTITIONSCOUNT=3
+      - ZEEBE_BROKER_CLUSTER_REPLICATIONFACTOR=3
+      - ZEEBE_BROKER_CLUSTER_CLUSTERSIZE=3
+      - ZEEBE_BROKER_CLUSTER_INITIALCONTACTPOINTS=zeebe_broker0:26502
     volumes:
-      - ../target/exporter/zeebe-hazelcast-exporter.jar:/usr/local/zeebe/exporters/zeebe-hazelcast-exporter.jar
+      - ./exporters/zeebe-hazelcast-exporter-1.0.1-jar-with-dependencies.jar:/usr/local/zeebe/exporters/zeebe-hazelcast-exporter.jar
       - ./application.yaml:/usr/local/zeebe/config/application.yaml
+      - ./data/broker0:/usr/local/zeebe/data:Z
     networks:
       - zeebe_network
+
+  zeebe1:
+    container_name: zeebe_broker1
+    image: camunda/zeebe:1.1.0
+    environment:
+      - ZEEBE_BROKER_CLUSTER_NODEID=1
+      - ZEEBE_BROKER_CLUSTER_PARTITIONSCOUNT=3
+      - ZEEBE_BROKER_CLUSTER_REPLICATIONFACTOR=3
+      - ZEEBE_BROKER_CLUSTER_CLUSTERSIZE=3
+      - ZEEBE_BROKER_CLUSTER_INITIALCONTACTPOINTS=zeebe_broker0:26502
+    volumes:
+      - ./exporters/zeebe-hazelcast-exporter-1.0.1-jar-with-dependencies.jar:/usr/local/zeebe/exporters/zeebe-hazelcast-exporter.jar
+      - ./application.yaml:/usr/local/zeebe/config/application.yaml
+      - ./data/broker1:/usr/local/zeebe/data:Z
+    networks:
+      - zeebe_network
+
+  zeebe2:
+    container_name: zeebe_broker2
+    image: camunda/zeebe:1.1.0
+    environment:
+      - ZEEBE_BROKER_CLUSTER_NODEID=2
+      - ZEEBE_BROKER_CLUSTER_PARTITIONSCOUNT=3
+      - ZEEBE_BROKER_CLUSTER_REPLICATIONFACTOR=3
+      - ZEEBE_BROKER_CLUSTER_CLUSTERSIZE=3
+      - ZEEBE_BROKER_CLUSTER_INITIALCONTACTPOINTS=zeebe_broker0:26502
+    volumes:
+      - ./exporters/zeebe-hazelcast-exporter-1.0.1-jar-with-dependencies.jar:/usr/local/zeebe/exporters/zeebe-hazelcast-exporter.jar
+      - ./application.yaml:/usr/local/zeebe/config/application.yaml
+      - ./data/broker2:/usr/local/zeebe/data:Z
+    networks:
+      - zeebe_network
+
   monitor:
     container_name: zeebe-simple-monitor
-    image: ghcr.io/camunda-community-hub/zeebe-simple-monitor:latest
+    image: ghcr.io/camunda-community-hub/zeebe-simple-monitor:2.1.0
     environment:
-      - zeebe.client.broker.contactPoint=zeebe:26500
-      - zeebe.client.worker.hazelcast.connection=zeebe:5701
+      - zeebe.client.broker.contactPoint=zeebe0:26500
+      - zeebe.client.worker.hazelcast.connection=zeebe0:5701
+      - white-label.custom.title=Simple Monitor
+      - server.servlet.context-path=/simple-monitor
     ports:
       - "8082:8082"
     depends_on:
-      - zeebe
+      - zeebe2
     networks:
       - zeebe_network
